@@ -1,0 +1,3 @@
+/dist/*.gs
+/node_modules/
+**/.clasp.json
