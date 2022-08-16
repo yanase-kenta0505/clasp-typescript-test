@@ -4,6 +4,8 @@ declare var global: {
   // getRelativeDate: any
 }
 
+const WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAAAZs0GmJQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=6QK88sMDTyaQWNTgq4-Qrx6_6W0H4y7Qztlq9kNY5So%3D"
+
 interface CalendarUpdatedEvent {
   authMode: GoogleAppsScript.Script.AuthMode;
   calendarId: string;
@@ -13,8 +15,24 @@ interface CalendarUpdatedEvent {
 
 global.onUpdateEvent = (e:CalendarUpdatedEvent) => {
   console.log(`calendarId: ${e.calendarId}`)  
-  getUpdatedEvents(e.calendarId).forEach(event => {
-    console.log(`title:${event.summary}`)
+  getUpdatedEvents(e.calendarId).forEach((event) => {
+    let message: string;
+    if (event.status === "cancelled") {
+      message = `
+      イベントが削除されました。
+      `
+    } else {
+      message = `
+      イベントが更新されました。\n
+      *${event.summary}*
+      ==================================================\n
+      開始日時：${event.start?.dateTime}\n
+      終了日時：${event.end?.dateTime}\n
+      説明  ：${event.description}\n
+      <${event.htmlLink}|LINK>
+      `
+    }
+    sendMessageToChat(WEBHOOK_URL, message)
   });
 }
 
@@ -64,4 +82,16 @@ function getRelativeDate(daysOffset: number, hour: number) {
   date.setSeconds(0)
   date.setMilliseconds(0)
   return date
+}
+
+function sendMessageToChat(webHookURL: string, message: string): void {
+  const params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+    payload: JSON.stringify({
+      text: message
+    }),
+    method: "post",
+    contentType: "application/json",
+  };
+  const response = UrlFetchApp.fetch(webHookURL, params);
+  console.log(`repsonse:${response}`);
 }
